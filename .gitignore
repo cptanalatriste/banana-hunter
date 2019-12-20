@@ -114,3 +114,6 @@ Banana.app/Contents/MacOS/mac_banana
 Banana.app/Contents/Info.plist
 Banana.app/Contents/Frameworks/MonoBleedingEdge/MonoEmbedRuntime/osx/libMonoPosixHelper.dylib
 Banana.app/Contents/Frameworks/MonoBleedingEdge/MonoEmbedRuntime/osx/libmonobdwgc-2.0.dylib
+*.log
+.ipynb_checkpoints/Navigation-checkpoint.ipynb
+*.pyc
