@@ -126,9 +126,19 @@ class BananaAgent():
             update_value = self.tau * local_value + (1.0 - self.tau) * target_value
             target_value.copy_(update_value)
 
-    def act(self, state, epsilon=None):
-        action  = None
-        if epsilon is not None and random.random() > epsilon:
+    def save_trained_weights(self, network_file):
+
+        torch.save(self.local_network.state_dict(), network_file)
+        print("Network state saved at ", network_file)
+
+    def load_trained_weights(self, network_file):
+
+        self.local_network.load_state_dict(torch.load(network_file))
+        print("Network state loaded from ", network_file)
+
+    def act(self, state, epsilon=0.0):
+        action = None
+        if random.random() > epsilon:
 
             state = torch.from_numpy(state).float().unsqueeze(0).to(device)
             self.local_network.eval()

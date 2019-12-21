@@ -28,14 +28,16 @@ class BananaManager():
 
         return next_state, reward, done
 
-    def start_training(self, agent, environment, num_episodes=2000, score_window=100):
+    def start_training(self, agent, environment, num_episodes=2000,
+                       score_window=100, target_score=15.0,
+                       network_file='checkpoint.pth'):
 
         all_scores = []
         last_scores = deque(maxlen=score_window)
 
         epsilon = self.epsilon_start
 
-        for episode in range(num_episodes):
+        for episode in range(1, num_episodes + 1):
 
             state = self.do_reset(environment)
             current_score = 0.0
@@ -56,8 +58,16 @@ class BananaManager():
 
             epsilon = max(self.epsilon_end, self.epsilon_decay * epsilon)
 
+            average_score = np.mean(last_scores)
             if episode % score_window == 0:
-                print("Episode", episode, "Average score", np.mean(last_scores))
+                print("Episode", episode, "Average score over the last", score_window,
+                      " episodes: ", average_score)
 
+            if average_score >= target_score:
+                print("Environment solved in ", episode + 1, " episodes. ",
+                      "Average score: ", average_score)
+
+                agent.save_trained_weights(network_file=network_file)
+                break
 
         return all_scores
