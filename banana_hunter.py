@@ -1,6 +1,13 @@
 import numpy as np
 from collections import namedtuple, deque
 import random
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+device = torch.device("cude:0" if torch.cuda.is_available() else "cpu")
+
 
 class ReplayBuffer():
 
@@ -10,35 +17,71 @@ class ReplayBuffer():
         self.storage = deque(maxlen=buffer_size)
         self.training_batch_size = training_batch_size
 
-        self.experience = namedtuple("Experience",
-            field_names=['state', 'action', 'reward', 'next_state', 'done'])
+        self.field_names = ['state', 'action', 'reward', 'next_state', 'done']
+        self.field_types = [np.float32, np.int64, np.float32, np.float32, np.float32]
 
+        self.experience = namedtuple("Experience", field_names=self.field_names)
 
     def add(self, state, action, reward, next_state, done):
         self.storage.append(self.experience(state, action, reward,
-            next_state, done))
+                                            next_state, done))
 
     def sample(self):
-        raw_samples = random.sample(self.storage, k = self.training_batch_size)
+        raw_samples = random.sample(self.storage, k=self.training_batch_size)
+        values = []
+
+        for tuple_index in range(len(self.field_names)):
+            value_list = [sample[tuple_index]
+                          for sample in raw_samples if sample is not None]
+
+            value_list = np.vstack(value_list).astype(self.field_types[tuple_index])
+            value_list = torch.from_numpy(value_list)
+            values.append(value_list.to(device))
+
+        return tuple(values)
 
     def __len__(self):
         return len(self.storage)
 
 class BananaAgent():
 
-    def __init__(self, state_size, num_actions, buffer_size=int(1e5), learning_frequency=4,
-        min_learning_samples=64):
+    def __init__(self, state_size, num_actions, buffer_size=int(1e5),
+                 learning_frequency=4, min_learning_samples=64, gamma=0.99,
+                 second_layer_input=64, second_layer_output=64,
+                 learning_rate=5e-4, tau=1e-3):
 
         self.state_size = state_size
         self.num_actions = num_actions
         self.min_learning_samples = min_learning_samples
+        self.target_network = self.get_q_network(state_size, num_actions,
+                                                 second_layer_input,
+                                                 second_layer_output)
+        self.local_network = self.get_q_network(state_size, num_actions,
+                                                second_layer_input,
+                                                second_layer_output)
 
         self.replay_buffer = ReplayBuffer(num_actions=num_actions,
-            buffer_size= buffer_size,
-            training_batch_size=min_learning_samples)
+                                          buffer_size=buffer_size,
+                                          training_batch_size=min_learning_samples)
+        self.optimizer = optim.Adam(self.local_network.parameters(),
+                                    lr=learning_rate)
 
         self.step_counter = 0
+        self.gamma = gamma
+        self.tau = tau
         self.learning_frequency = learning_frequency
+
+    def get_q_network(self, state_size, num_actions, second_layer_input,
+                      second_layer_output):
+
+        model = nn.Sequential(
+            nn.Linear(in_features=state_size, out_features=second_layer_input),
+            nn.ReLU(),
+            nn.Linear(in_features=second_layer_input, out_features=second_layer_output),
+            nn.ReLU(),
+            nn.Linear(in_features=second_layer_output, out_features=num_actions))
+
+        return model
 
 
     def step(self, state, action, reward, next_state, done):
@@ -47,10 +90,54 @@ class BananaAgent():
         self.step_counter += 1
 
         if (self.step_counter % self.learning_frequency and
-            len(self.replay_buffer) > self.min_learning_samples):
+                len(self.replay_buffer) > self.min_learning_samples):
 
             learning_samples = self.replay_buffer.sample()
+            self.learn(learning_samples)
+
+    def learn(self, learning_samples):
+
+        states, actions, rewards, next_states, dones = learning_samples
+
+        target_next_states = self.target_network(next_states).detach()
+        target_qvalues_max, _ = target_next_states.max(dim=1)
+        target_qvalues_max = target_qvalues_max.unsqueeze(1)
+
+        target_q_values = rewards + (self.gamma * target_qvalues_max * (1 - dones))
+
+        local_current_states = self.local_network(states)
+        local_values_per_action = local_current_states.gather(dim=1, index=actions)
+
+        loss = F.mse_loss(input=local_values_per_action, target=target_q_values)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self.update_model_parameters()
+
+    def update_model_parameters(self):
+
+        for target_parameter, local_parameter in zip(self.target_network.parameters(),
+                                                     self.local_network.parameters()):
+
+            local_value = local_parameter.data
+            target_value = target_parameter.data
+
+            update_value = self.tau * local_value + (1.0 - self.tau) * target_value
+            target_value.copy_(update_value)
 
     def act(self, state, epsilon=None):
-        action = np.random.randint(self.num_actions)
+        action  = None
+        if epsilon is not None and random.random() > epsilon:
+
+            state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+            self.local_network.eval()
+            with torch.no_grad():
+                qvalues_per_action = self.local_network(state)
+            self.local_network.train()
+
+            action = np.argmax(qvalues_per_action.cpu().data.numpy())
+        else:
+            action = random.choice(np.arange(self.num_actions))
+
         return action
