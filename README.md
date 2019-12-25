@@ -4,6 +4,8 @@ A deep-reinforcement learning agent that loves bananas.
 ## Project Details:
 Banana-Hunter is a deep-reinforcement learning agent designed for the Banana Collectors environment from the [Unity ML-Agents Toolkit](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md).
 
+![The banana collector environment](https://github.com/cptanalatriste/banana-hunter/blob/master/img/environment.png?raw=true)
+
 The state is represented via a vector of 37 elements, corresponding to the agent's perception of the objects (i.e. bananas) around him.  Our agent has four possible actions:
 
 1. Move forward, represented by 0.
