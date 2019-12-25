@@ -16,7 +16,7 @@ We considered our agent has mastered the task when he reached an **average score
 ## Getting Started
 Before running your agent, be sure to accomplish this first:
 1. Clone this repository.
-1. Download the banana collector environment appropriate to your operating system (available [here](https://github.com/udacity/deep-reinforcement-learning/tree/master/p1_navigation).
+1. Download the banana collector environment appropriate to your operating system (available [here](https://github.com/udacity/deep-reinforcement-learning/tree/master/p1_navigation)).
 1. Place the environment file in the cloned repository folder.
 1. Setup an appropriate Python environment. Instructions available [here.]
 (https://github.com/udacity/deep-reinforcement-learning)
