@@ -1,5 +1,5 @@
 # banana-hunter
-A deep-reinforcement learning agent that loves bananas, trained using the [Deep Q-Networks (DQN)](https://www.nature.com/articles/nature14236?wm=book_wap_0005).
+A deep-reinforcement learning agent that loves bananas, trained using [Deep Q-Networks (DQN)](https://www.nature.com/articles/nature14236?wm=book_wap_0005).
 
 ## Project Details:
 Banana-Hunter is a deep-reinforcement learning agent designed for the Banana Collectors environment from the [Unity ML-Agents Toolkit](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md).
